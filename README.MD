@@ -2,6 +2,6 @@
 
 ## [View Azure Pet Store Learning Guides](https://github.com/chtrembl/azure-cloud/tree/main/petstore)
 
-Extensive Azure learning guides for a hypothetical Azure Pet Store walking you thorugh many Azure services and development scenarios using pre built web applications and microdervices.
+Extensive Azure learning guides for a hypothetical Azure Pet Store walk you through many Azure services and development scenarios using prebuilt web applications and microdevices.
 
-> You can view the live deployment here https://mintpaw.com
+> You can view the live deployment here https://www.mintpaw.com
