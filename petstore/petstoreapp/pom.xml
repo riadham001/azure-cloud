@@ -152,7 +152,12 @@
 			<artifactId>mockito-junit-jupiter</artifactId>
 			<scope>test</scope>
 		</dependency>
-		
+	
+		<dependency>
+        		<groupId>com.azure</groupId>
+        		<artifactId>azure-core-http-netty</artifactId>
+        		<version>1.12.4</version>
+   	       </dependency>	
 	</dependencies>
 
 	<dependencyManagement>
