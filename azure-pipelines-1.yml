@@ -3,7 +3,12 @@
 # https://docs.microsoft.com/azure/devops/pipelines/languages/docker
 
 trigger:
-- main
+  branches:
+    include:
+    - main
+  paths:
+    include:
+    - petstore/petstoreorderservice/*
 
 resources:
 - repo: self
@@ -12,25 +17,45 @@ variables:
 
   # Container registry service connection established during pipeline creation
   dockerRegistryServiceConnection: '273640a5-2e87-41e0-9d79-43cd9bc604fe'
-  imageRepository: 'petstorepetservice'
+  imageRepository: 'petstoreorderservice'
   containerRegistry: 'mintpawcr.azurecr.io'
-  dockerfilePath: '**/Dockerfile'
+  dockerfilePath: 'petstore/petstoreorderservice/Dockerfile'
   tag: '$(Build.BuildId)'
-  imagePullSecret: 'mintpawcr12412a3d-auth'
-
-  # Agent VM image name
-  vmImageName: 'ubuntu-latest'
-
+  imagePullSecret: '$(crImagePullSecretGlobalV2)'
 
 stages:
 - stage: Build
   displayName: Build stage
   jobs:
+  #- job: Analysis
+  #  displayName: Security Analysis
+  #  pool:
+  #    vmImage: 'windows-latest'
+  #  steps:
+  #  - task: CredScan@2
+  #    inputs:
+  #      toolMajorVersion: 'V2'
+
   - job: Build
-    displayName: Build
+    displayName: Build App
     pool:
-      vmImage: $(vmImageName)
+      vmImage: 'ubuntu-latest'
     steps:
+    - script: echo -n -e "{\"version\":\"$(Build.BuildNumber) - $(tag)\"}" > petstore/petstoreorderservice/src/main/resources/version.json
+
+    - task: Maven@3
+      continueOnError: true
+      displayName: Build Spring Boot Jar
+      inputs:
+        mavenPomFile: 'petstore/petstoreorderservice/pom.xml'
+        mavenOptions: '-Xmx3072m'
+        javaHomeOption: 'JDKVersion'
+        jdkVersionOption: '8'
+        jdkArchitectureOption: 'x64'
+        publishJUnitResults: true
+        testResultsFiles: 'petstore/petstoreorderservice/target/surefire-reports/TEST-*.xml'
+        codeCoverageToolOption: 'jaCoCo'
+        goals: 'package'
     - task: Docker@2
       displayName: Build and push an image to container registry
       inputs:
@@ -40,40 +65,35 @@ stages:
         containerRegistry: $(dockerRegistryServiceConnection)
         tags: |
           $(tag)
+          latest
 
     - upload: manifests
       artifact: manifests
 
 - stage: Deploy
-  displayName: Deploy stage
+  displayName: Deploy Stage
   dependsOn: Build
 
   jobs:
   - deployment: Deploy
-    displayName: Deploy
+    displayName: Deploy App
     pool:
-      vmImage: $(vmImageName)
-    environment: 'riadham001azurecloud-1400.ingress-petstoreservices'
+      vmImage: 'ubuntu-latest'
+    environment: 'Development'
     strategy:
       runOnce:
         deploy:
           steps:
           - task: KubernetesManifest@0
-            displayName: Create imagePullSecret
-            inputs:
-              action: createSecret
-              secretName: $(imagePullSecret)
-              dockerRegistryEndpoint: $(dockerRegistryServiceConnection)
-
-          - task: KubernetesManifest@0
             displayName: Deploy to Kubernetes cluster
             inputs:
               action: deploy
+              kubernetesServiceConnection: riadham001azurecloud-1400.ingress-petstoreservices
+              namespace: ingress-basic
               manifests: |
-                $(Pipeline.Workspace)/manifests/deployment.yml
-                $(Pipeline.Workspace)/manifests/service.yml
+                $(Pipeline.Workspace)/manifests/petstoreorderservice-deployment-everything-enabled.yml
+                $(Pipeline.Workspace)/manifests/petstoreorderservice-service-everything-enabled.yml
               imagePullSecrets: |
                 $(imagePullSecret)
               containers: |
                 $(containerRegistry)/$(imageRepository):$(tag)
-
