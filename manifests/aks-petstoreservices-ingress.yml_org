@@ -3,10 +3,8 @@ kind: Ingress
 metadata:
   name: ingress-petstoreservices
   annotations:
-    nginx.ingress.kubernetes.io/ssl-redirect: "false"
-    nginx.ingress.kubernetes.io/use-regex: "true"
+    kubernetes.io/ingress.class: nginx
 spec:
-  ingressClassName: nginx
   rules:
   - http:
       paths:
